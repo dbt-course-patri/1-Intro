@@ -5,6 +5,8 @@
 3. [Arquitectura de dbt](#schema3)
 4. [Practica con Docker](#schema4)
 5. [Cómo trabajar con dbt usando PostgreSQL instalado localmente](#schema5)
+6. [Arrancar el contenedor Docker de PostgreSQL](#schema6)
+7. [Ejercicio paso a paso](#schema7)
 
 
 21. [Notas](#schemanotas)
@@ -48,9 +50,6 @@ dbt se enfoca en el paso de Transform dentro de la arquitectura ELT.
 - **Tests:** Validaciones que garantizan integridad de los datos, como verificar unicidad o que haya nulos.
 
 
-
-
-
 <hr>
 <a name='schema4'></a>
 
@@ -58,7 +57,7 @@ dbt se enfoca en el paso de Transform dentro de la arquitectura ELT.
 1. Crear un proyecto desde cero
 ```bash
 dbt init mi_proyecto_dbt
-cd mi_proyecti_dbt
+cd mi_proyecto_dbt
 ```
 - Nombre del proyecto.
 - Tipo de conexión.
@@ -109,6 +108,88 @@ Para tener un entorno limpio, controlado, portátil y fácil de resetear.
 - Si no quieres tener que iniciar Docker cada vez.
 
 - Si estás trabajando con volúmenes grandes de datos o rendimiento alto y prefieres evitar la capa de virtualización.
+
+6. Verificar el archivo `dbt_project.yml`
+- Donde dice el perfil a usar.
+```yml
+name: 'mi_proyecto_dbt'
+version: '1.0.0'
+
+profile: 'mi_proyecto_dbt'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  mi_proyecto_dbt:
+    +materialized: view
+```
+
+7. Comprobar el `~/.dbt/profiles.yml`
+- Dice cómo conectarse (credenciales, base de datos, etc.).
+
+```yml
+mi_proyecto_dbt:
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: patricia
+      password: "1234"
+      port: 5432
+      dbname: dbt_tutorial
+      schema: public
+  target: dev
+```
+
+8. Ahí creas un archivo SQL, por ejemplo: `my_first_dbt_model.sql`.
+
+```sql
+select 1 as id, 'Hola dbt' as mensaje
+```
+9. Ejecutar el comando en tu terminal 
+```bash
+dbt run
+```
+- El modelo es el archivo `.sql` que escribes en dbt.
+    - Un modelo es simplemente un archivo .sql que contiene una consulta. Esa consulta puede ser:
+
+       - Una selección de columnas,
+
+      - Una agregación (agrupaciones),
+
+      - Una transformación compleja de datos.
+
+- El modelo se convierte en una tabla o vista real cuando ejecutas dbt run.
+  - Lee tus modelos (.sql).
+
+  - Transforma el contenido según tu configuración (por ejemplo, los convierte en tablas o vistas en tu base de datos).
+
+  - Ejecuta esas queries en tu base de datos (en tu caso, Postgres).
+
+  - Crea una tabla o vista con el nombre del archivo en la base de datos.
+
+- Esa tabla o vista está en la base de datos y puedes consultarla como cualquier otra tabla.
+
+10. Verifica el modelo en Postgres
+Entra al shell de Postgres para revisar la tabla/vista que creaste:
+
+```bash
+psql -h localhost -U patricia -d dbt_tutorial
+```
+11. Una vez dentro, ejecuta la consulta para ver los datos del modelo que generaste. Por ejemplo, si tu modelo se llama my_first_dbt_model:
+
+```sql
+select * from public.my_first_dbt_model;
+```
 
 <hr>
 <a name='schema5'></a>
@@ -185,3 +266,69 @@ select * from nombre_de_tu_modelo;
 - Si tienes varias bases de datos o proyectos, usa diferentes schemas para aislar datos.
 - Es recomendable usar un entorno virtual para instalar dbt y sus dependencias, para evitar conflictos.
 
+
+<hr>
+<a name='schema6'></a>
+
+## 6. Arrancar el contenedor Docker de PostgreSQL
+- Arrancar Docker Desktop.
+```bash
+docker start postgres-dbt
+docker ps  # para verificar que esté corriendo
+```
+
+7. Activar el entorno virtual de Python donde instalaste dbt
+```bash
+source venv_dbt/bin/activate
+```
+7. Verificar conexión con dbt
+- Navegar hasta la carpeta del proyecto y ejecutar:
+```bash
+dbt debug
+```
+<hr>
+<a name='schema7'></a>
+
+## 7. Ejercicio paso a paso
+
+1. Comprobar paso [6](#6-arrancar-el-contenedor-docker-de-postgresql)
+
+2. Crear un archivo CSV para poblar datos (seed)
+- Crea el archivo `seeds/employees.csv` con este contenido:
+
+```csv
+id,first_name,last_name,department
+1,Ana,López,Marketing
+2,Luis,García,Finance
+3,Carmen,Pérez,Engineering
+```
+3. Ejecutar el comando para cargar el seed
+Desde la raíz del proyecto:
+
+```bash
+dbt seed
+```
+Verás que se crea una tabla employees en la base de datos dbt_tutorial.
+4. Abre tu terminal y conéctate a tu base de datos de Postgres (asegúrate de que Docker esté corriendo y el contenedor activo):
+
+```bash
+
+psql -h localhost -U patricia -d dbt_tutorial
+```
+Si te pide contraseña, escribe la que configuraste (por ejemplo, 1234).
+
+5. Ya dentro del prompt de psql, ejecuta:
+
+```sql
+\dt
+```
+Esto mostrará todas las tablas disponibles. Deberías ver una como esta:
+
+```pgsql
+ public | employees | table | patricia
+ ```
+6. Para ver el contenido de la tabla:
+
+```sql
+select * from employees;
+```
