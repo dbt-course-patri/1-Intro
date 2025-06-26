@@ -9,7 +9,7 @@
 7. [Ejercicio paso a paso](#schema7)
 
 
-21. [Notas](#schemanotas)
+
 
 
 <hr>
