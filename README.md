@@ -332,3 +332,105 @@ Esto mostrará todas las tablas disponibles. Deberías ver una como esta:
 ```sql
 select * from employees;
 ```
+7. Crear un modelo
+Crea el archivo `models/employee_summary.sql` con esta query:
+```sql
+-- models/employee_summary.sql
+select
+  department,
+  count(*) as total_employees
+from {{ ref('employees') }}
+group by department
+```
+8. Ejecutar el modelo
+```bash
+dbt run
+```
+Esto creará una tabla o vista en tu base de datos llamada `employee_summary`.
+
+9. ¿Qué hace dbt compile?
+`dbt compile` traduce tus modelos `.sql` con Jinja (como `{{ ref('otro_modelo') }}` o `{{ config(...) }`}) a SQL puro que será ejecutado contra tu base de datos.
+
+- No ejecuta nada en tu base de datos.
+  - Solo convierte tus archivos .sql en código SQL final y los guarda en la carpeta target/compiled.
+
+- ¿Por qué es útil?
+  - Te permite ver exactamente qué SQL genera dbt antes de que lo ejecute.
+
+  - Ideal para depurar errores de sintaxis o entender lo que se ejecutará.
+
+- ¿Cómo se usa?
+  - Desde la raíz de tu proyecto (donde está dbt_project.yml), ejecuta:
+
+```bash
+dbt compile
+```
+- ¿Dónde ver el SQL compilado?
+  - Después de compilar, puedes ir a la carpeta:
+
+
+`target/compiled/mi_proyecto_dbt/models/`
+- Ahí verás un archivo .sql que es el resultado final de tu modelo (por ejemplo, first_model.sql) ya sin Jinja, solo SQL puro.
+
+
+10. Paso a paso completo con lo que llevas:
+- Ya tienes tu modelo en `models/my_first_model.sql`.
+
+- Ejecutaste `dbt run` → esto ya creó la tabla en Postgres.
+
+Ejecuta ahora:
+
+```bash
+dbt compile
+```
+- Opcional: Abre el archivo compilado si quieres ver el SQL final.
+
+- Para verificar que tu conexión está bien:
+
+```bash
+dbt debug
+```
+
+10. Verificar los datos en Postgres
+Conéctate a tu base de datos:
+
+```bash
+psql -h localhost -U patricia -d dbt_tutorial
+```
+Y luego ejecuta:
+
+```sql
+select * from employees_summary;
+```
+
+
+11. ¿Cuál es el orden recomendado en proyectos reales?
+  1. `dbt run` → es el comando principal que se usa normalmente, porque:
+
+    - Internamente ya hace el `compile` automáticamente.
+
+    - Ejecuta el SQL final en tu base de datos y crea las tablas o vistas.
+
+  2. Por eso, no necesitas correr `dbt compile` antes de `dbt run`, salvo que quieras ver el SQL antes de ejecutarlo.
+
+12. Entonces… ¿para qué usar `dbt compile`?
+1. Lo usas solo si quieres revisar o depurar el SQL que se va a ejecutar, sin hacer cambios en tu base de datos. Por ejemplo:
+
+  - Para asegurarte de que el código Jinja genera SQL correcto.
+
+  - Para ver cómo se resuelven los `{{ ref() }}` o configuraciones.
+
+13. Ejemplo de flujo típico en desarrollo
+1. Creas o modificas un modelo: `models/my_model.sql`.
+
+2. Ejecutas `dbt compile` para revisar qué SQL generó.
+
+3. Verificas que esté bien (opcional).
+
+4. Ejecutas `dbt run` para aplicarlo a la base de datos.
+
+14. onclusión
+- En producción: solo usas `dbt run`, porque ya incluye `compile`.
+
+- En desarrollo: puedes hacer `compile` antes si quieres ver el SQL final sin afectar nada.
+
